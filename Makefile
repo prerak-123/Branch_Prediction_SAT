@@ -25,12 +25,12 @@ clean:
 	 find prefetcher/no -name \*.d -delete
 	 find prefetcher/no_instr -name \*.o -delete
 	 find prefetcher/no_instr -name \*.d -delete
-	 find branch/ltage -name \*.o -delete
-	 find branch/ltage -name \*.d -delete
+	 find branch/hashed_perceptron -name \*.o -delete
+	 find branch/hashed_perceptron -name \*.d -delete
 	 find btb/basic_btb -name \*.o -delete
 	 find btb/basic_btb -name \*.d -delete
 
-bin/champsim: $(patsubst %.cc,%.o,$(wildcard src/*.cc)) obj/repl_rreplacementDlru.a obj/pref_pprefetcherDno.a obj/pref_pprefetcherDno_instr.a obj/bpred_bbranchDltage.a obj/btb_bbtbDbasic_btb.a
+bin/champsim: $(patsubst %.cc,%.o,$(wildcard src/*.cc)) obj/repl_rreplacementDlru.a obj/pref_pprefetcherDno.a obj/pref_pprefetcherDno_instr.a obj/bpred_bbranchDhashed_perceptron.a obj/btb_bbtbDbasic_btb.a
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 replacement/lru/%.o: CFLAGS += -Ireplacement/lru
@@ -54,10 +54,10 @@ obj/pref_pprefetcherDno_instr.a: $(patsubst %.cc,%.o,$(wildcard prefetcher/no_in
 	@mkdir -p $(dir $@)
 	ar -rcs $@ $^
 
-branch/ltage/%.o: CFLAGS += -Ibranch/ltage
-branch/ltage/%.o: CXXFLAGS += -Ibranch/ltage
-branch/ltage/%.o: CXXFLAGS +=  -Dinitialize_branch_predictor=bpred_bbranchDltage_initialize -Dlast_branch_result=bpred_bbranchDltage_last_result -Dpredict_branch=bpred_bbranchDltage_predict
-obj/bpred_bbranchDltage.a: $(patsubst %.cc,%.o,$(wildcard branch/ltage/*.cc)) $(patsubst %.c,%.o,$(wildcard branch/ltage/*.c))
+branch/hashed_perceptron/%.o: CFLAGS += -Ibranch/hashed_perceptron
+branch/hashed_perceptron/%.o: CXXFLAGS += -Ibranch/hashed_perceptron
+branch/hashed_perceptron/%.o: CXXFLAGS +=  -Dinitialize_branch_predictor=bpred_bbranchDhashed_perceptron_initialize -Dlast_branch_result=bpred_bbranchDhashed_perceptron_last_result -Dpredict_branch=bpred_bbranchDhashed_perceptron_predict
+obj/bpred_bbranchDhashed_perceptron.a: $(patsubst %.cc,%.o,$(wildcard branch/hashed_perceptron/*.cc)) $(patsubst %.c,%.o,$(wildcard branch/hashed_perceptron/*.c))
 	@mkdir -p $(dir $@)
 	ar -rcs $@ $^
 
@@ -72,6 +72,6 @@ obj/btb_bbtbDbasic_btb.a: $(patsubst %.cc,%.o,$(wildcard btb/basic_btb/*.cc)) $(
 -include $(wildcard replacement/lru/*.d)
 -include $(wildcard prefetcher/no/*.d)
 -include $(wildcard prefetcher/no_instr/*.d)
--include $(wildcard branch/ltage/*.d)
+-include $(wildcard branch/hashed_perceptron/*.d)
 -include $(wildcard btb/basic_btb/*.d)
 

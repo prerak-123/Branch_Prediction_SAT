@@ -24,7 +24,7 @@ CACHE cpu0_STLB("cpu0_STLB", 1.0, 2, 128, 12, 32, 32, 0, 16, 7, 1, 1, 1, LOG2_PA
 CACHE cpu0_L1I("cpu0_L1I", 1.0, 1, 64, 8, 64, 64, 32, 8, 3, 1, 2, 2, LOG2_BLOCK_SIZE, 0, 1, 1, 5, &cpu0_L2C, CACHE::pref_t::CPU_REDIRECT_pprefetcherDno_instr_, CACHE::repl_t::rreplacementDlru);
 CACHE cpu0_ITLB("cpu0_ITLB", 1.0, 1, 16, 4, 16, 16, 0, 8, 0, 1, 2, 2, LOG2_PAGE_SIZE, 0, 1, 1, 5, &cpu0_STLB, CACHE::pref_t::pprefetcherDno, CACHE::repl_t::rreplacementDlru);
 CACHE cpu0_DTLB("cpu0_DTLB", 1.0, 1, 16, 4, 16, 16, 0, 8, 0, 1, 2, 2, LOG2_PAGE_SIZE, 0, 1, 0, 5, &cpu0_STLB, CACHE::pref_t::pprefetcherDno, CACHE::repl_t::rreplacementDlru);
-O3_CPU cpu0(0, 1.0, 32, 8, 16, 64, 32, 32, 352, 128, 72, 6, 6, 6, 128, 4, 2, 2, 5, 1, 1, 1, 0, 0, &cpu0_ITLB, &cpu0_DTLB, &cpu0_L1I, &cpu0_L1D, O3_CPU::bpred_t::bbranchDltage, O3_CPU::btb_t::bbtbDbasic_btb, O3_CPU::ipref_t::pprefetcherDno_instr);
+O3_CPU cpu0(0, 1.0, 32, 8, 16, 64, 32, 32, 352, 128, 72, 6, 6, 6, 128, 4, 2, 2, 5, 1, 1, 1, 0, 0, &cpu0_ITLB, &cpu0_DTLB, &cpu0_L1I, &cpu0_L1D, O3_CPU::bpred_t::bbranchDhashed_perceptron, O3_CPU::btb_t::bbtbDbasic_btb, O3_CPU::ipref_t::pprefetcherDno_instr);
 std::array<O3_CPU*, NUM_CPUS> ooo_cpu {
 &cpu0
 };
