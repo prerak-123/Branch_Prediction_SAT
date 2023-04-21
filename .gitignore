@@ -1,2 +1,5 @@
 traces/*.xz
 .vscode
+**/*.d
+**/*.o
+**/*.out
