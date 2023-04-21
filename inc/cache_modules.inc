@@ -33,15 +33,15 @@ void impl_replacement_final_stats()
 
 enum class pref_t
 {
-    CPU_REDIRECT_pprefetcherDno_instr_,
-    pprefetcherDno
+    pprefetcherDno,
+    CPU_REDIRECT_pprefetcherDno_instr_
 };
 
 void pref_pprefetcherDno_initialize();
 void impl_prefetcher_initialize()
 {
-    if (pref_type == pref_t::CPU_REDIRECT_pprefetcherDno_instr_) return ooo_cpu[cpu]->pref_pprefetcherDno_instr_initialize();
     if (pref_type == pref_t::pprefetcherDno) return pref_pprefetcherDno_initialize();
+    if (pref_type == pref_t::CPU_REDIRECT_pprefetcherDno_instr_) return ooo_cpu[cpu]->pref_pprefetcherDno_instr_initialize();
     throw std::invalid_argument("Data prefetcher module not found");
 }
 
@@ -72,8 +72,8 @@ void impl_prefetcher_cycle_operate()
 void pref_pprefetcherDno_final_stats();
 void impl_prefetcher_final_stats()
 {
-    if (pref_type == pref_t::pprefetcherDno) return pref_pprefetcherDno_final_stats();
     if (pref_type == pref_t::CPU_REDIRECT_pprefetcherDno_instr_) return ooo_cpu[cpu]->pref_pprefetcherDno_instr_final_stats();
+    if (pref_type == pref_t::pprefetcherDno) return pref_pprefetcherDno_final_stats();
     throw std::invalid_argument("Data prefetcher module not found");
 }
 
