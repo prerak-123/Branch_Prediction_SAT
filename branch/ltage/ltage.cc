@@ -208,7 +208,7 @@ void O3_CPU::last_branch_result(uint64_t ip, uint64_t branch_target, uint8_t tak
     // std::cerr << "Exiting using base" << std::endl;
     return;
   }
-  //Provider is one of the partially tagged counters
+  // Provider is one of the partially tagged counters
   int index = components[provider].get_index(ip, history);
   prediction = components[provider].predict(ip, history);
   int altprediction;
@@ -236,7 +236,25 @@ void O3_CPU::last_branch_result(uint64_t ip, uint64_t branch_target, uint8_t tak
   if (taken) {
     components[provider].entries[index].pred = std::min(components[provider].entries[index].pred + 1, (1 << (PRED_BITS - 1)) - 1);
   } else {
-    components[provider].entries[index].pred = std::max(components[provider].entries[index].pred - 1, -1*(1 << (PRED_BITS - 1)));
+    components[provider].entries[index].pred = std::max(components[provider].entries[index].pred - 1, -1 * (1 << (PRED_BITS - 1)));
+  }
+
+  if (components[provider].entries[index].u == 0 && (components[provider].entries[index].pred == 0 || components[provider].entries[index].pred == -1)) {
+    if (altpred == -1) {
+      if (taken) {
+        base_pred[ip % BASE_PRED_SIZE] = std::min(base_pred[ip % BASE_PRED_SIZE] + 1, 1);
+      } else {
+        base_pred[ip % BASE_PRED_SIZE] = std::max(base_pred[ip % BASE_PRED_SIZE] - 1, -2);
+      }
+    } else {
+      int altindex = components[altpred].get_index(ip, history);
+      if (taken) {
+        components[altpred].entries[altindex].pred = std::min(components[provider].entries[altindex].pred + 1, (1 << (PRED_BITS - 1)) - 1);
+      } else {
+        components[provider].entries[altindex].pred = std::max(components[provider].entries[altindex].pred - 1, -1 * (1 << (PRED_BITS - 1)));
+      }
+    }
+    // std::cerr << "Exit using alt Prediction" << std::endl;
   }
 
   // New entry on misprediction
@@ -267,8 +285,7 @@ void O3_CPU::last_branch_result(uint64_t ip, uint64_t branch_target, uint8_t tak
   global_hist[ip % GLOBAL_HISTORY_SIZE][0] = taken;
 
   // Reset Useful bit
-  //TODO
+  // TODO
 
   // std::cerr << "Exit provider" << std::endl;
-
 }

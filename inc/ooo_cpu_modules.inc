@@ -1,26 +1,26 @@
 enum class bpred_t
 {
-    bbranchDhashed_perceptron
+    bbranchDbimodal
 };
 
-void bpred_bbranchDhashed_perceptron_initialize();
+void bpred_bbranchDbimodal_initialize();
 void impl_branch_predictor_initialize()
 {
-    if (bpred_type == bpred_t::bbranchDhashed_perceptron) return bpred_bbranchDhashed_perceptron_initialize();
+    if (bpred_type == bpred_t::bbranchDbimodal) return bpred_bbranchDbimodal_initialize();
     throw std::invalid_argument("Branch predictor module not found");
 }
 
-void bpred_bbranchDhashed_perceptron_last_result(uint64_t, uint64_t, uint8_t, uint8_t);
+void bpred_bbranchDbimodal_last_result(uint64_t, uint64_t, uint8_t, uint8_t);
 void impl_last_branch_result(uint64_t ip, uint64_t target, uint8_t taken, uint8_t branch_type)
 {
-    if (bpred_type == bpred_t::bbranchDhashed_perceptron) return bpred_bbranchDhashed_perceptron_last_result(ip, target, taken, branch_type);
+    if (bpred_type == bpred_t::bbranchDbimodal) return bpred_bbranchDbimodal_last_result(ip, target, taken, branch_type);
     throw std::invalid_argument("Branch predictor module not found");
 }
 
-uint8_t bpred_bbranchDhashed_perceptron_predict(uint64_t, uint64_t, uint8_t, uint8_t);
+uint8_t bpred_bbranchDbimodal_predict(uint64_t, uint64_t, uint8_t, uint8_t);
 uint8_t impl_predict_branch(uint64_t ip, uint64_t predicted_target, uint8_t always_taken, uint8_t branch_type)
 {
-    if (bpred_type == bpred_t::bbranchDhashed_perceptron) return bpred_bbranchDhashed_perceptron_predict(ip, predicted_target, always_taken, branch_type);
+    if (bpred_type == bpred_t::bbranchDbimodal) return bpred_bbranchDbimodal_predict(ip, predicted_target, always_taken, branch_type);
     throw std::invalid_argument("Branch predictor module not found");
     return 0;
 }
