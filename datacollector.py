@@ -41,6 +41,9 @@ def tracenames() -> list[str]:
 
 ## runs simulations on traces in that folder
 def do_sims():
+    # a very insecure way of doing this
+    if os.path.exists('./run_champsim.sh'):
+        return do_sims_oldcs()
     config_file_name = f'champsim_config_{predname}.json'
     if not os.path.exists(f'./{config_file_name}'):
         import json
@@ -69,6 +72,20 @@ def do_sims():
     for p in processes:
         p.join()
     # done
+# for old champsim
+def do_sims_oldcs():
+    ## do change this if reqd
+    os.system(f'./build_champsim.sh {predname} no no no no lru 1 &> /dev/null')
+    bin = f'{predname}-no-no-no-no-lru-1core'
+    cmd2 = lambda name: f'./bin/${bin} -warmup_instructions {int(instr*1000000)} -simulation_instructions {int(instr*1000000)} -traces {traceinppath}{name}.champsimtrace.xz &> {txt_output_path}{name}-{instr}M-{predname}.txt'
+    processes = []
+    names = tracenames()
+    for name in names:
+        p = multiprocessing.Process(target=run_command, args=(cmd2(name),))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
 
 import re
 columnnames = ('IPC','Branch_Prediction_Accuracy','MPKI','ROB_Occ_at_Mispredict')+(
