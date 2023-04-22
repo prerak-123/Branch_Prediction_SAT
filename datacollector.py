@@ -70,10 +70,16 @@ def do_sims():
         p.join()
     # done
 
+import re
+columnnames = ('IPC','Branch_Prediction_Accuracy','MPKI','ROB_Occ_at_Mispredict')+(
+    'BRANCH_DIRECT_JUMP','BRANCH_INDIRECT','BRANCH_CONDITIONAL','BRANCH_DIRECT_CALL','BRANCH_INDIRECT_CALL', 'BRANCH_RETURN')
+regexes = (r"cumulative IPC:\s+([\d\.]+)",r"Branch Prediction Accuracy:\s+([\d\.]+)",r"MPKI:\s+([\d\.]+)",r"Average ROB Occupancy at Mispredict:\s+([\d\.]+)") + (
+    r"BRANCH_DIRECT_JUMP:\s+([\d\.]+)",r"BRANCH_INDIRECT:\s+([\d\.]+)",r"BRANCH_CONDITIONAL:\s+([\d\.]+)",r"BRANCH_DIRECT_CALL:\s+([\d\.]+)",r"BRANCH_INDIRECT_CALL:\s+([\d\.]+)",r"BRANCH_RETURN:\s+([\d\.]+)")
+
 def txt_to_csv():
     names = tracenames()
     # whatto have in the dataframe
-    df = pd.DataFrame(columns=['predictor','instructions','tracename'])
+    df = pd.DataFrame(columns=['predictor','instructions','tracename',*columnnames])
     # for txt file in range
     for name in names:
         df = df.append(txt_to_pd(name,df),ignore_index=True)
@@ -85,12 +91,15 @@ def txt_to_pd(tracename:str, df : pd.DataFrame)->pd.Series:
     filename = f'{txt_output_path}{tracename}-{instr}M-{predname}.txt'
     entry = {'predictor':predname,'instructions': instr, 'tracename': tracename}
     with open(filename,'r') as simfile:
-        pass
+        text = simfile.read()
+    for name,regex in zip(columnnames,regexes):
+        match = re.search(regex,text)
+        entry[name] = float(match.group(1))
     return pd.Series(entry)
 
 #### ok uncomment when add txt to pd works
 def main():
-    if overrwrite:
+    if overrwrite or not os.path.exists(f'{txt_output_path}{tracenames()[0]}-{instr}M-{predname}.txt'):
         print("Doing Sims")
         do_sims()
     print("Making csv")
