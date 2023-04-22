@@ -1,0 +1,87 @@
+#include "cache.h"
+
+void CACHE::l2c_prefetcher_initialize() {
+	cout << "CPU " << cpu << " L2C next line prefetcher" << endl; 
+
+
+}
+
+
+
+uint32_t CACHE::l2c_prefetcher_operate(
+		uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint32_t metadata_in) {
+	if (type != LOAD)
+		return metadata_in;
+
+	int set = get_set(addr);
+	int way=get_way(addr, set);
+	if (cache_hit && !(block[set][way].prefetch == 1)) return metadata_in;
+
+	rr.push_back(addr-offset);
+	if (rr.size() > 64){
+		rr.erase(rr.begin());
+	}
+
+	for(int i = 0; i < rr.size(); i++){
+		if(rr[i] == (long unsigned int)(((addr >> LOG2_BLOCK_SIZE) - offset) << LOG2_BLOCK_SIZE)){
+			scores[ind]++;
+			break;
+		}
+	}
+
+	if (scores[ind] > SCORE_MAX){
+		offset = offsets[ind];
+		for(int i = 0; i < n_offsets; i++){
+			scores[i] = 0;
+		}
+		ind = 0;
+		prefetchStop = false;
+	}
+	ind++;
+	if(ind ==n_offsets){
+		nrounds += 1;
+		ind = 0;
+		if (nrounds == ROUND_MAX){
+			int max = scores[0], maxInd = 0;
+			for(int i = 0; i < n_offsets; i++){
+				if(scores[i] > max){
+					maxInd = i;
+					max = scores[i];
+				}
+				scores[i] = 0;
+			}
+			offset = offsets[maxInd];
+			cout << "Prefetch updated to " << offset << endl;
+			if (max < bo_threshold){
+				prefetchStop = true;
+			}
+			else{
+				prefetchStop = false;
+			}
+			ind = 0;
+		}
+	}
+
+	uint64_t pf_addr = ((addr >> LOG2_BLOCK_SIZE) + offset) << LOG2_BLOCK_SIZE;
+
+	DP(if (warmup_complete[cpu]) {
+			cout << "[" << NAME << "] " << __func__ << hex << " base_cl: " << (addr >> LOG2_BLOCK_SIZE);
+			cout << " pf_cl: " << (pf_addr >> LOG2_BLOCK_SIZE) << " ip: " << ip << " cache_hit: " << +cache_hit
+			<< " type: " << +type << endl;
+			});
+	cout << "Prefetching with offset " << offset << endl;
+
+	if (!prefetchStop){
+		prefetch_line(ip, addr, pf_addr, FILL_L2, 0);
+	}
+	else
+		prefetch_line(ip, addr, pf_addr, FILL_L2, 0);
+	return metadata_in;
+}
+
+uint32_t CACHE::l2c_prefetcher_cache_fill(
+		uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr, uint32_t metadata_in) {
+	return metadata_in;
+}
+
+void CACHE::l2c_prefetcher_final_stats() { cout << "CPU " << cpu << " L2C next line prefetcher final stats" << endl; }
