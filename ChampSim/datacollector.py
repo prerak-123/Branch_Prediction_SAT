@@ -11,7 +11,10 @@ import subprocess
 # ./datacollector.py branch-predictor-file num-instr-in-million recollect-data(bool)
 predname = sys.argv[1]
 instr = int(sys.argv[2])
-overrwrite = bool(int(sys.argv[3]))
+try:
+    overrwrite = bool(int(sys.argv[3]))
+except:
+    overrwrite = False
 
 csv_output_path = f'./traces/csvdata/{predname}-{instr}M.csv'
 traceinppath = './traces/'
@@ -98,16 +101,13 @@ regexes = (r"cumulative IPC:\s+([\d\.]+)",r"Branch Prediction Accuracy:\s+([\d\.
 
 def txt_to_csv():
     names = tracenames()
-    # whatto have in the dataframe
-    df = pd.DataFrame(columns=['predictor','instructions','tracename',*columnnames])
-    # for txt file in range
     #for name in names:
     #    df = pd.concat([df, txt_to_pd(name)], axis=0, ignore_index=True)
-    df = pd.concat([df]+[txt_to_pd(name) for name in names],ignore_index=True)   
+    df = pd.DataFrame([txt_to_pd(name) for name in names])   
     write_to_csv(df)
 
 ## this function is left to implement
-def txt_to_pd(tracename:str)->pd.DataFrame:
+def txt_to_pd(tracename:str)->dict:
     filename = f'{txt_output_path}{tracename}-{instr}M-{predname}.txt'
     entry = {'predictor':predname,'instructions': instr, 'tracename': tracename}
     with open(filename,'r') as simfile:
@@ -115,7 +115,7 @@ def txt_to_pd(tracename:str)->pd.DataFrame:
     for name,regex in zip(columnnames,regexes):
         match = re.search(regex,text)
         entry[name] = float(match.group(1))
-    return pd.DataFrame(entry)
+    return entry
 
 #### ok uncomment when add txt to pd works
 def main():
