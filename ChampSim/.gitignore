@@ -9,3 +9,4 @@ inc/champsim.h.bak
 
 bin/
 obj/
+./traces/*.xz

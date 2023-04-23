@@ -326,6 +326,7 @@ uint64_t va_to_pa(uint32_t cpu, uint64_t instr_id, uint64_t va, uint64_t unique_
     // check unique cache line footprint
     map <uint64_t, uint64_t>::iterator cl_check = unique_cl[cpu].find(unique_va >> LOG2_BLOCK_SIZE);
     if (cl_check == unique_cl[cpu].end()) { // we've never seen this cache line before
+        make_pair(unique_va >> LOG2_BLOCK_SIZE, 0);
         unique_cl[cpu].insert(make_pair(unique_va >> LOG2_BLOCK_SIZE, 0));
         num_cl[cpu]++;
     }
