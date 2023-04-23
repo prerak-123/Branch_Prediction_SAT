@@ -37,14 +37,16 @@ public:
 
   int get_index(uint64_t ip, std::vector<uint8_t> &history)
   {
-    uint64_t index = ip;
-    for (int i = 0; i < hist_len; i++)
+    int index = ip;
+    int hist = history[0];
+    int size = entries.size();
+    for (int i = 1; i < hist_len; i++)
     {
-      int index_to_xor = i % 63;
-      index = index ^ (((int64_t)history[i]) << index_to_xor);
+      hist = 3 * hist + history[i];
     }
-
-    return index % entries.size();
+    index ^= hist;
+    index = ((index % size) + size) % size;
+    return index;
   }
 
   int get_tag(uint64_t ip, std::vector<uint8_t> &history)
@@ -82,6 +84,7 @@ int hist_lens[NUM_COMPONENTS] = {4, 6, 10, 16, 25, 40, 64, 101, 160, 254, 403, 6
 int tag_widths[NUM_COMPONENTS] = {7, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15};
 int branches = 0;
 int phase = 0;
+long long unsigned int freqs[NUM_COMPONENTS + 1];
 
 // Is it global or specific to branch??
 // Assuming branch specific for now
@@ -94,13 +97,15 @@ std::vector<int> base_pred(BASE_PRED_SIZE);
 void O3_CPU::initialize_branch_predictor()
 {
   // Initializing components
+  freqs[0] = 0;
   for (int i = 0; i < NUM_COMPONENTS; i++)
   {
     components.push_back(Component(num_entries[i], hist_lens[i], tag_widths[i]));
+    freqs[i + 1] = 0;
   }
 
   // Initialising global history table
-  for (int i = 0; i < GLOBAL_HISTORY_SIZE; i++)
+for (int i = 0; i < GLOBAL_HISTORY_SIZE; i++)
   {
     for (int j = 0; j < hist_lens[NUM_COMPONENTS - 1]; j++)
     {
@@ -144,6 +149,7 @@ uint8_t O3_CPU::predict_branch(uint64_t ip)
 
   if (provider == -1)
   {
+    freqs[0]++;
     prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
     // std::cerr << "Exit using base Prediction" << std::endl;
     return (uint8_t)prediction;
@@ -156,15 +162,21 @@ uint8_t O3_CPU::predict_branch(uint64_t ip)
     {
       prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
       // std::cerr << "Exit using alt base Prediction" << std::endl;
+      // std::cout << prediction << std::endl;
+      freqs[0]++;
       return (uint8_t)prediction;
     }
     prediction = components[altpred].predict(ip, history);
+    freqs[altpred + 1]++;
     // std::cerr << "Exit using alt Prediction" << std::endl;
+    // std::cout << prediction << std::endl;
     return (uint8_t)prediction;
   }
 
   prediction = components[provider].predict(ip, history);
+  // std::cout << prediction << std::endl;
   // std::cerr << "Exit using provider prediction" << std::endl;
+  freqs[provider + 1]++;
   return (uint8_t)prediction;
 }
 
@@ -173,7 +185,7 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
   // std::cerr << "Update Started for IP " << ip << std::endl;
   branches += 1;
 
-  auto history = global_hist[ip % GLOBAL_HISTORY_SIZE];
+  auto history = global_hist[ip%GLOBAL_HISTORY_SIZE];
   int altpred = -1;
   int provider = -1;
   int prediction;
@@ -241,6 +253,7 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
     }
 
     // std::cerr << "Exiting using base" << std::endl;
+    return;
   }
   // Provider is one of the partially tagged counters
   else
@@ -343,35 +356,37 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
   }
 
   // Update Global History
-  //std::rotate(global_hist[ip % GLOBAL_HISTORY_SIZE].begin(), global_hist[ip % GLOBAL_HISTORY_SIZE].end() - 1, global_hist[ip % GLOBAL_HISTORY_SIZE].end());
-  
+  // std::rotate(global_hist[ip % GLOBAL_HISTORY_SIZE].begin(), global_hist[ip % GLOBAL_HISTORY_SIZE].end() - 1, global_hist[ip % GLOBAL_HISTORY_SIZE].end());
+
   for(int i = global_hist[ip%GLOBAL_HISTORY_SIZE].size() - 2; i >= 0; i--){
   	global_hist[ip % GLOBAL_HISTORY_SIZE][i + 1] = global_hist[ip % GLOBAL_HISTORY_SIZE][i];
   }
-
-  global_hist[ip % GLOBAL_HISTORY_SIZE][0] = taken;
+  if (taken)
+    global_hist[ip % GLOBAL_HISTORY_SIZE][0] = 1;
+  else
+    global_hist[ip % GLOBAL_HISTORY_SIZE][0] = 0;
 
   // Reset Useful bit
   // TODO
 
-  if(branches % PERIODIC_UPDATE == 0){
-    if(phase){
-      for(int i = 0; i < NUM_COMPONENTS; i++){
-        for(int j = 0; j < num_entries[i]; j++){
-          components[i].entries[j].u = components[i].entries[j].u % 2;
-        }
-      }
-    }
-    else{
-      for(int i = 0; i < NUM_COMPONENTS; i++){
-        for(int j = 0; j < num_entries[i]; j++){
-          components[i].entries[j].u = components[i].entries[j].u / 2;
-        }
-      }
-    }
-    phase = 1 - phase;
-    branches = 0;
-  }
+  // if(branches % PERIODIC_UPDATE == 0){
+  //   if(phase){
+  //     for(int i = 0; i < NUM_COMPONENTS; i++){
+  //       for(int j = 0; j < num_entries[i]; j++){
+  //         components[i].entries[j].u = components[i].entries[j].u % 2;
+  //       }
+  //     }
+  //   }
+  //   else{
+  //     for(int i = 0; i < NUM_COMPONENTS; i++){
+  //       for(int j = 0; j < num_entries[i]; j++){
+  //         components[i].entries[j].u = components[i].entries[j].u / 2;
+  //       }
+  //     }
+  //   }
+  //   phase = 1 - phase;
+  //   branches = 0;
+  // }
 
   // std::cerr << "Exit provider" << std::endl;
 }

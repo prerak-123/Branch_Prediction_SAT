@@ -32,7 +32,7 @@ def write_to_csv(df : pd.DataFrame):
     df.to_csv(csv_output_path, index=False)
 
 # just gets the trace names
-def tracenames() -> list[str]:
+def tracenames():
     tracenames = []
     for __, _, files in os.walk(traceinppath):
         for filename in files:

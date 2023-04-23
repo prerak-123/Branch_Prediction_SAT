@@ -42,14 +42,16 @@ public:
 
   int get_index(uint64_t ip, std::vector<uint8_t> &history)
   {
-    uint64_t index = ip;
-    for (int i = 0; i < hist_len; i++)
+    int index = ip;
+    int hist = history[0];
+    int size = entries.size();
+    for (int i = 1; i < hist_len; i++)
     {
-      int index_to_xor = i % 63;
-      index = index ^ (((int64_t)history[i]) << index_to_xor);
+      hist = 3 * hist + history[i];
     }
-
-    return index % entries.size();
+    index ^= hist;
+    index = ((index % size) + size) % size;
+    return index;
   }
 
   int get_tag(uint64_t ip, std::vector<uint8_t> &history)
@@ -261,6 +263,7 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
     }
 
     // std::cerr << "Exiting using base" << std::endl;
+    return;
   }
   // Provider is one of the partially tagged counters
   else
@@ -368,30 +371,32 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
   for(int i = global_hist[ip%GLOBAL_HISTORY_SIZE].size() - 2; i >= 0; i--){
   	global_hist[ip % GLOBAL_HISTORY_SIZE][i + 1] = global_hist[ip % GLOBAL_HISTORY_SIZE][i];
   }
-
-  global_hist[ip % GLOBAL_HISTORY_SIZE][0] = taken;
+  if(taken)
+    global_hist[ip % GLOBAL_HISTORY_SIZE][0] = 1;
+  else
+    global_hist[ip % GLOBAL_HISTORY_SIZE][0] = 0;
 
   // Reset Useful bit
   // TODO
 
-  if(branches % PERIODIC_UPDATE == 0){
-    if(phase){
-      for(int i = 0; i < NUM_COMPONENTS; i++){
-        for(int j = 0; j < num_entries[i]; j++){
-          components[i].entries[j].u = components[i].entries[j].u % 2;
-        }
-      }
-    }
-    else{
-      for(int i = 0; i < NUM_COMPONENTS; i++){
-        for(int j = 0; j < num_entries[i]; j++){
-          components[i].entries[j].u = components[i].entries[j].u / 2;
-        }
-      }
-    }
-    phase = 1 - phase;
-    branches = 0;
-  }
+  // if(branches % PERIODIC_UPDATE == 0){
+  //   if(phase){
+  //     for(int i = 0; i < NUM_COMPONENTS; i++){
+  //       for(int j = 0; j < num_entries[i]; j++){
+  //         components[i].entries[j].u = components[i].entries[j].u % 2;
+  //       }
+  //     }
+  //   }
+  //   else{
+  //     for(int i = 0; i < NUM_COMPONENTS; i++){
+  //       for(int j = 0; j < num_entries[i]; j++){
+  //         components[i].entries[j].u = components[i].entries[j].u / 2;
+  //       }
+  //     }
+  //   }
+  //   phase = 1 - phase;
+  //   branches = 0;
+  // }
   loop_pred.update(taken, tage_pred);
   if(loop_pred.found && tage_pred != lp_prediction){
     if (taken == lp_prediction){

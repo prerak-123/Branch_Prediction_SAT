@@ -36,10 +36,11 @@ def cmpplotter(data1:str,data2:str,metric:str):
     y_values1 = df1[metric]
     y_values2 = df2[metric]
     fig, ax = plt.subplots()
-    ax.bar(xax, y_values1,width=width, label=data1)
-    ax.bar(xax+width , y_values2,width=width, label=data2)
-    ax.set_xticks(xax + width / 2)
-    ax.set_xticklabels(x_labels,rotation=90,fontsize=8)
+    ax.plot(x_labels, y_values1,marker = 'x', label=data1)
+    ax.plot(x_labels , y_values2,marker = 'o', label=data2)
+    plt.xticks(rotation=90, ha='right',fontsize=8)
+    # ax.set_xticks(xax + width / 2)
+    # ax.xticks(rotation=90,fontsize=8)
     ax.set_xlabel('Trace')
     ax.set_ylabel(metric)
     ax.set_title(f'{data1} vs {data2}')
@@ -56,7 +57,7 @@ def singplotter(data:str,metric:str):
     df = df.sort_values('tracename')
     x = df['tracename']
     y = df[metric]
-    plt.bar(x,y)
+    plt.plot(x,y, marker='o')
     plt.xlabel('Trace')
     plt.ylabel(metric)
     plt.title(data)
