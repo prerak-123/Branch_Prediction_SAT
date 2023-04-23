@@ -11,7 +11,10 @@ import subprocess
 # ./datacollector.py branch-predictor-file num-instr-in-million recollect-data(bool)
 predname = sys.argv[1]
 instr = int(sys.argv[2])
-overrwrite = bool(int(sys.argv[3]))
+try:
+    overrwrite = bool(int(sys.argv[3]))
+except:
+    overrwrite = False
 
 csv_output_path = f'./traces/csvdata/{predname}-{instr}M.csv'
 traceinppath = './traces/'
@@ -74,10 +77,13 @@ def do_sims():
     # done
 # for old champsim
 def do_sims_oldcs():
+    output_dir = os.path.dirname(txt_output_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     ## do change this if reqd
     os.system(f'./build_champsim.sh {predname} no no no no lru 1 &> /dev/null')
     bin = f'{predname}-no-no-no-no-lru-1core'
-    cmd2 = lambda name: f'./bin/${bin} -warmup_instructions {int(instr*1000000)} -simulation_instructions {int(instr*1000000)} -traces {traceinppath}{name}.champsimtrace.xz &> {txt_output_path}{name}-{instr}M-{predname}.txt'
+    cmd2 = lambda name: f'./bin/{bin} -warmup_instructions {int(instr*1000000)} -simulation_instructions {int(instr*1000000)} -traces {traceinppath}{name}.champsimtrace.xz > {txt_output_path}{name}-{instr}M-{predname}.txt'
     processes = []
     names = tracenames()
     for name in names:
@@ -95,16 +101,13 @@ regexes = (r"cumulative IPC:\s+([\d\.]+)",r"Branch Prediction Accuracy:\s+([\d\.
 
 def txt_to_csv():
     names = tracenames()
-    # whatto have in the dataframe
-    df = pd.DataFrame(columns=['predictor','instructions','tracename',*columnnames])
-    # for txt file in range
-    for name in names:
-        df = df.append(txt_to_pd(name,df),ignore_index=True)
-
+    #for name in names:
+    #    df = pd.concat([df, txt_to_pd(name)], axis=0, ignore_index=True)
+    df = pd.DataFrame([txt_to_pd(name) for name in names])   
     write_to_csv(df)
 
 ## this function is left to implement
-def txt_to_pd(tracename:str, df : pd.DataFrame)->pd.Series:
+def txt_to_pd(tracename:str)->dict:
     filename = f'{txt_output_path}{tracename}-{instr}M-{predname}.txt'
     entry = {'predictor':predname,'instructions': instr, 'tracename': tracename}
     with open(filename,'r') as simfile:
@@ -112,7 +115,7 @@ def txt_to_pd(tracename:str, df : pd.DataFrame)->pd.Series:
     for name,regex in zip(columnnames,regexes):
         match = re.search(regex,text)
         entry[name] = float(match.group(1))
-    return pd.Series(entry)
+    return entry
 
 #### ok uncomment when add txt to pd works
 def main():
