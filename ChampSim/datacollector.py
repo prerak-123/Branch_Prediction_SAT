@@ -101,13 +101,13 @@ def txt_to_csv():
     # whatto have in the dataframe
     df = pd.DataFrame(columns=['predictor','instructions','tracename',*columnnames])
     # for txt file in range
-    for name in names:
-        df = df.append(txt_to_pd(name,df),ignore_index=True)
-
+    #for name in names:
+    #    df = pd.concat([df, txt_to_pd(name)], axis=0, ignore_index=True)
+    df = pd.concat([df]+[txt_to_pd(name) for name in names],ignore_index=True)   
     write_to_csv(df)
 
 ## this function is left to implement
-def txt_to_pd(tracename:str, df : pd.DataFrame)->pd.Series:
+def txt_to_pd(tracename:str)->pd.DataFrame:
     filename = f'{txt_output_path}{tracename}-{instr}M-{predname}.txt'
     entry = {'predictor':predname,'instructions': instr, 'tracename': tracename}
     with open(filename,'r') as simfile:
@@ -115,7 +115,7 @@ def txt_to_pd(tracename:str, df : pd.DataFrame)->pd.Series:
     for name,regex in zip(columnnames,regexes):
         match = re.search(regex,text)
         entry[name] = float(match.group(1))
-    return pd.Series(entry)
+    return pd.DataFrame(entry)
 
 #### ok uncomment when add txt to pd works
 def main():
