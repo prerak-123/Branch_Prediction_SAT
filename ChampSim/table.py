@@ -50,8 +50,10 @@ def table_maker(base:str,comparators:list[str],size:int,metric:str):
     table = ax.table(cellText=table.values, colLabels=table.columns, loc='center', cellLoc='center', colColours=[cmap(0.7)] * len(table.columns))
     comparators.sort()
     # Save the table as a PNG image
-    plt.savefig(f'{plotpath}{"_".join(comparators)}_vs_{base}_{size}M_table.png', bbox_inches='tight',dpi=300)
+    plt.savefig(f'{plotpath}{"_".join(comparators)}_vs_{base}_{size}M_{metric}_table.png', bbox_inches='tight',dpi=300)
     plt.close()
+    
+    table.to_csv(f'{csv_dir}{"_".join(comparators)}_vs_{base}_{size}M_{metric}_table.csv')
     return
 
 def main():
