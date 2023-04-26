@@ -10,6 +10,9 @@
 #define MAXAGE 255
 #define MAXCONF 5
 struct Entry{
+    /*
+     * Struct to store the status of a given loop ip
+     * */
 	uint32_t past_iter, curr_iter, tag, confidence, age;
 	Entry(){
 		past_iter = 0;
@@ -21,20 +24,24 @@ struct Entry{
 };
 
 class LoopPredictor{
-	Entry entries[256];
+	Entry entries[256]; // The table to maintain history
 
 	public:
-		bool pred;
-		bool found;
-		Entry *lastEntry;
+		bool pred; // The prediction of the loop predictor for the last queried ip
+		bool found; // Whether to rely on our prediction
+		Entry *lastEntry; // The entry in the table corresponding to the last queried ip
 		uint64_t ind;
 		uint64_t tag;
 		bool getPred(uint64_t ip){
+            /*
+             * Returns the prediction, true to take the branch
+             * found is set to true if we got a good find
+             * if found is false assume that the predictor did not find anything
+             */
 			ind = (ip & ((1 << BITS_IND)-1)) << BITS_WAY;
 			tag  = (ip>>BITS_IND & ((1<<TAG_LEN)-1));
 			for(int i = 0; i < WAY; i++){
 				if (entries[i+ind].tag == tag && entries[i+ind].confidence >= 3){
-					/* hit = i; */
 					found = true;
 					lastEntry = &entries[i+ind];
 					if(entries[i+ind].curr_iter + 1 == entries[i+ind].past_iter){
@@ -50,16 +57,18 @@ class LoopPredictor{
 			found = false;
 			pred = false;
 			return false;
-			
 		}
 
 		void update(bool taken, bool tage){
+            /*
+             * Update the table according to the actual branch taken and the prediction given by tage
+             */
+
 			if (found){
 				if(taken != pred){
 					*lastEntry = Entry();
 					return;
 				}
-				//if (taken != tage){
 				else{
                     if(lastEntry->age < MAXAGE)
 					lastEntry->age++;
@@ -95,13 +104,14 @@ class LoopPredictor{
 			else if (taken){
 				for (int i = 0; i < WAY; i++){
 					int j = ind + i;
-					if (entries[j].age <= 0){
+					if (entries[j].age <= 0){ // The present entry has been here for too long without  a useful prediction
 						entries[j] = Entry();
 						entries[j].tag = tag;
 						entries[j].age = MAXAGE;
 						entries[j].curr_iter = 1;
 					}
 					else{
+                        // Prevented other entry from being added, but it's fine because it was invoked recently
 						entries[j].age--;	
 					}
 				}
