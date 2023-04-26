@@ -83,10 +83,13 @@ def do_sims_oldcs():
     ## do change this if reqd
     os.system(f'./build_champsim.sh {predname} no no no no lru 1 &> /dev/null')
     bin = f'{predname}-no-no-no-no-lru-1core'
+    while not os.path.exists(f'./bin/{bin}'):
+        from time import sleep
+        sleep(5)
     cmd2 = lambda name: f'./bin/{bin} -warmup_instructions {int(instr*1000000)} -simulation_instructions {int(instr*1000000)} -traces {traceinppath}{name}.champsimtrace.xz > {txt_output_path}{name}-{instr}M-{predname}.txt'
     processes = []
     names = tracenames()
-    for name in names:
+    for name in names:    
         p = multiprocessing.Process(target=run_command, args=(cmd2(name),))
         p.start()
         processes.append(p)

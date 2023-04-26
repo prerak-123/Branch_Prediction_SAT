@@ -45,18 +45,18 @@ def cmpplotter(datas,metric:str):
     ax.set_title(" v/s ".join(datas))
     ax.legend()
     plt.tight_layout()
-    plt.savefig(name('bar'))
+    plt.savefig(name('bar'),dpi=300)
     plt.clf()
     # line
     for y,label in zip(y_values,datas):
         plt.plot(x_labels,y,label=label,marker='o')
     plt.title(" v/s ".join(datas))
     plt.xticks(rotation=90, ha='right',fontsize=8)
-    plt.xlabel(metric)
-    plt.ylabel('Trace')
+    plt.ylabel(metric)
+    plt.xlabel('Trace')
     plt.legend()
     plt.tight_layout()
-    plt.savefig(name('line'))
+    plt.savefig(name('line'),dpi=300)
     print("Done")
     return 
 
@@ -75,7 +75,7 @@ def singplotter(data:str,metric:str):
     plt.title(data)
     plt.xticks(rotation=90, ha='right',fontsize=8)
     plt.tight_layout()
-    plt.savefig(name('bar'))
+    plt.savefig(name('bar'),dpi=300)
     
     plt.clf()
 
@@ -85,7 +85,7 @@ def singplotter(data:str,metric:str):
     plt.title(data)
     plt.xticks(rotation=90, ha='right',fontsize=8)
     plt.tight_layout()
-    plt.savefig(name('line'))
+    plt.savefig(name('line'),dpi=300)
 
     print("Done")
     return
