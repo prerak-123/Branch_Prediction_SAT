@@ -8,16 +8,20 @@ For the scripts traces should be inside ChampSim/traces (alternatively change th
 The different versions of branch predictors are in the ChampSim/branch folder. 
 
 ### Predictors
-- ltage_base : 
+- ltage_base : Our final implementation of LTAGE based on the paper provided to us.
 
-- ltage_nolp :
+- ltage_nolp : A simpler implementation of TAGE without the loop predictor.
 
-- ltage_p4 :
+- ltage_p4 : LTAGE with the number of prediction bits increased to 4.
 
-- ltage_byuseful : 
+- ltage_byuseful : LTAGE with the component being chosen according to useful counter instead of one taking longest history
+
+- ltage_diff_num_entries : LTAGE but reshuffling the number of entries so that components with more access is given more entries.
+
+- ltage_crazy : LTAGE but with base predictor as a hashed perceptron
 
 ### Data
-Data used in the report, and otherwise can be found in the _results_ folder.  <fill this>
+Data generated for all the traces and used in the report, and otherwise can be found in the _results_ folder. Comparisons between different versions of LTAGE can be found in the form of plots and tables.
 
 
 ### Scripts
