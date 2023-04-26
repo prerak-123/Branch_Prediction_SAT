@@ -45,10 +45,6 @@ public:
     this->num_entries = num_entries;
   }
 
-  // ~Component(){
-  //   delete[] entries;
-  // }
-
   int get_index(uint64_t ip, int* history)
   {
     int index = ip;
@@ -77,10 +73,8 @@ public:
   // 0, 1 if tag hit, else -1
   int predict(uint64_t ip, int* history)
   {
-    // std::cout << "Started" << std::endl;
     int index = get_index(ip, history);
     int tag = get_tag(ip, history);
-    // std::cout << "Reached Here" << std::endl;
     if (tag == entries[index].tag)
     {
       return (entries[index].pred >= 0);
