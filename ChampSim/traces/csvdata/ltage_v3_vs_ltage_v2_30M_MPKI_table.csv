@@ -1,0 +1,10 @@
+,Predictor,ltage_v3
+0,cadical-low-60K-1186B,1.002531483821504
+1,cadical-med-30K-109B,1.0
+2,cadical-med-30K-1246B,1.0
+3,cadical-med-30K-137B,1.0
+4,cadical-med-30K-1463B,1.0
+5,cadical-med-30K-267B,1.0
+6,cadical-med-30K-831B,1.0
+7,kissat-mab-hywalk-low-30K-299B,1.0
+8,mean,1.0003160855712305

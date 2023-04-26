@@ -27,7 +27,7 @@ def to_metric(inp:str)->str:
         print("Metric?")
         exit(-1)
 
-def table_maker(base:str,comparators:list[str],size:int,metric:str):
+def table_maker(base:str,comparators,size:int,metric:str):
     
     dfbase = pd.read_csv(f'{csv_dir}{base}-{size}M.csv').sort_values('tracename')
     tracenames = np.append(dfbase['tracename'].to_numpy(),"mean")

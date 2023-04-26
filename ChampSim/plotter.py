@@ -24,7 +24,7 @@ def to_metric(inp:str)->str:
         exit(-1)
 
 
-def cmpplotter(datas:list[str],metric:str):
+def cmpplotter(datas,metric:str):
     datas.sort()
     name = lambda type:  f'{plotpath}{"_".join(datas)}_{metric}_{type}.png'
     #assert (sum(x!=y for x,y in zip(data1.split('-'),data2.split('-')))==1),"Why comparing apples and oranges?"

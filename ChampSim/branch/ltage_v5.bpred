@@ -1,0 +1,430 @@
+#include <cmath>
+#include <stdlib.h>
+#include <fstream>
+
+#include "ooo_cpu.h"
+#include "loop_predictor.h"
+int WITHLOOP = 0;
+LoopPredictor loop_pred;
+uint8_t tage_pred;
+uint8_t lp_prediction;
+
+const int PRED_BITS = 3;
+const int USEFUL_BITS = 2;
+const int NUM_COMPONENTS = 12;
+const int BASE_PRED_SIZE = 4096 * 4;
+const int GLOBAL_HISTORY_SIZE = 4096;
+const int PERIODIC_UPDATE = 256000;
+
+struct entry
+{
+  int tag = 0;
+
+  // 0, 1, 2, 3 => Take
+  //-4, -3, -2, -1 => Don't take
+  int pred = 0;
+
+  // 2 bit
+  int u = 0;
+};
+
+class Component
+{
+public:
+  entry* entries;
+  int hist_len;
+  int tag_width;
+  int num_entries;
+  Component(){}
+
+  Component(int num_entries, int hist_len, int tag_width)
+  {
+    entries = new entry[num_entries];
+    this->hist_len = hist_len;
+    this->tag_width = tag_width;
+    this->num_entries = num_entries;
+  }
+
+  // ~Component(){
+  //   delete[] entries;
+  // }
+
+  int get_index(uint64_t ip, int* history)
+  {
+    int index = ip;
+    int hist = history[0];
+    int size = num_entries;
+    for (int i = 1; i < hist_len; i++)
+    {
+      hist = 3 * hist + history[i];
+    }
+    index ^= hist;
+    index = ((index % size) + size) % size;
+    return index;
+  }
+
+  int get_tag(uint64_t ip, int* history)
+  {
+    int tag = ip;
+    for (int i = 0; i < hist_len; i++)
+    {
+      int index_to_xor = i % tag_width;
+      tag = tag ^ (((int)history[i]) << index_to_xor);
+    }
+    return tag % (1 << tag_width);
+  }
+
+  // 0, 1 if tag hit, else -1
+  int predict(uint64_t ip, int* history)
+  {
+    // std::cout << "Started" << std::endl;
+    int index = get_index(ip, history);
+    int tag = get_tag(ip, history);
+    // std::cout << "Reached Here" << std::endl;
+    if (tag == entries[index].tag)
+    {
+      return (entries[index].pred >= 0);
+    }
+
+    else
+    {
+      return -1;
+    }
+  }
+};
+
+Component components[NUM_COMPONENTS];
+int num_entries[NUM_COMPONENTS] = {1000, 1000, 2000, 2000, 2000, 2000, 1000, 1000, 1000, 1000, 500, 500};
+int hist_lens[NUM_COMPONENTS] = {4, 6, 10, 16, 25, 40, 64, 101, 160, 254, 403, 640};
+int tag_widths[NUM_COMPONENTS] = {7, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15};
+int branches = 0;
+int phase = 0;
+
+// Is it global or specific to branch??
+// Assuming branch specific for now
+int global_hist[1000];
+
+// 2 bit counter: 0, 1 Taken
+//  -2, -1 Not Taken
+int base_pred[BASE_PRED_SIZE];
+
+void O3_CPU::initialize_branch_predictor()
+{
+  // Initializing components
+  // std::cout << "Started" << std::endl;
+
+  for (int i = 0; i < NUM_COMPONENTS; i++)
+  {
+    components[i] = Component(num_entries[i], hist_lens[i], tag_widths[i]);
+  }
+
+  // Initialising global history table
+ 
+  for (int j = 0; j < hist_lens[NUM_COMPONENTS - 1]; j++)
+  {
+    global_hist[j] = 0;
+  }
+
+  // Initialising base_predictor
+  for (int i = 0; i < BASE_PRED_SIZE; i++)
+  {
+    base_pred[i] = 0;
+  }
+
+  loop_pred = LoopPredictor();
+
+
+  // std::cout << "Ended" << std::endl;
+}
+
+uint8_t tage_predictor(uint64_t ip){
+  auto history = global_hist;
+  int altpred = -1;
+  int provider = -1;
+  int prediction;
+  int max_useful = -1;
+
+  for (int i = 0; i < NUM_COMPONENTS; i++)
+  {
+    int pred = components[i].predict(ip, history);
+    int index = components[i].get_index(ip, history);
+    if (pred != -1 && components[i].entries[index].u >= max_useful)
+    {
+      max_useful = components[i].entries[index].u;
+      if (provider != -1)
+      {
+        altpred = provider;
+        provider = i;
+      }
+      else
+      {
+        provider = i;
+      }
+    }
+  }
+
+  // std::cerr << "Found Provider" << std::endl;
+
+  if (provider == -1)
+  {
+    prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
+    // std::cerr << "Exit using base Prediction" << std::endl;
+    return (uint8_t)prediction;
+  }
+
+  int index = components[provider].get_index(ip, history);
+  if (components[provider].entries[index].u == 0 && (components[provider].entries[index].pred == 0 || components[provider].entries[index].pred == -1))
+  {
+    if (altpred == -1)
+    {
+      prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
+      // std::cerr << "Exit using alt base Prediction" << std::endl;
+      return (uint8_t)prediction;
+    }
+    prediction = components[altpred].predict(ip, history);
+    // std::cerr << "Exit using alt Prediction" << std::endl;
+    return (uint8_t)prediction;
+  }
+
+  prediction = components[provider].predict(ip, history);
+  // std::cerr << "Exit using provider prediction" << std::endl;
+  return (uint8_t)prediction;
+
+
+}
+
+uint8_t O3_CPU::predict_branch(uint64_t ip)
+{
+  lp_prediction = loop_pred.getPred(ip);
+  tage_pred = tage_predictor(ip);
+  if (loop_pred.found && WITHLOOP >= 0){
+    // std::cerr << "Exit using loop Prediction" << std::endl;
+    return (uint8_t)lp_prediction;
+  }
+  return tage_pred;
+}
+
+void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
+{
+  // std::cerr << "Update Started for IP " << ip << std::endl;
+  branches += 1;
+
+  auto history = global_hist;
+  int altpred = -1;
+  int provider = -1;
+  int prediction;
+  int max_useful = -1;
+
+  for (int i = 0; i < NUM_COMPONENTS; i++)
+  {
+    int pred = components[i].predict(ip, history);
+    int index = components[i].get_index(ip, history);
+    if (pred != -1 && components[i].entries[index].u >= max_useful)
+    {
+      max_useful = components[i].entries[index].u;
+      if (provider != -1)
+      {
+        altpred = provider;
+        provider = i;
+      }
+      else
+      {
+        provider = i;
+      }
+    }
+  }
+
+  // If base predictor was provider
+  if (provider == -1)
+  {
+    prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
+
+    // If prediction incorrect, find new entry
+    if (prediction != taken)
+    {
+      int start;
+      int random = std::rand() % 4;
+      if (random <= 1)
+      {
+        start = 0;
+      }
+      else if (random == 2)
+      {
+        start = 1;
+      }
+      else
+      {
+        start = 2;
+      }
+
+      for (int i = start; i < NUM_COMPONENTS; i++)
+      {
+        int index = components[i].get_index(ip, history);
+        if (components[i].entries[index].u == 0)
+        {
+          components[i].entries[index].tag = components[i].get_tag(ip, history);
+          components[i].entries[index].pred = 0;
+          break;
+        }
+      }
+    }
+
+    // Update pred counter
+    if (taken)
+    {
+      base_pred[ip % BASE_PRED_SIZE] = std::min(base_pred[ip % BASE_PRED_SIZE] + 1, 1);
+    }
+    else
+    {
+      base_pred[ip % BASE_PRED_SIZE] = std::max(base_pred[ip % BASE_PRED_SIZE] - 1, -2);
+    }
+
+    // std::cerr << "Exiting using base" << std::endl;
+  }
+  // Provider is one of the partially tagged counters
+  else
+  {
+    int index = components[provider].get_index(ip, history);
+    prediction = components[provider].predict(ip, history);
+    int altprediction;
+
+    if (altpred == -1)
+    {
+      altprediction = base_pred[ip % BASE_PRED_SIZE] >= 0;
+    }
+
+    else
+    {
+      altprediction = components[altpred].predict(ip, history);
+    }
+
+    // Update Useful Counter
+    if (prediction != altprediction)
+    {
+      if (prediction == taken)
+      {
+        components[provider].entries[index].u = std::min(components[provider].entries[index].u + 1, (1 << USEFUL_BITS) - 1);
+      }
+
+      else
+      {
+        components[provider].entries[index].u = std::max(components[provider].entries[index].u - 1, 0);
+      }
+    }
+
+    // Update prediction counter
+    if (taken)
+    {
+      components[provider].entries[index].pred = std::min(components[provider].entries[index].pred + 1, (1 << (PRED_BITS - 1)) - 1);
+    }
+    else
+    {
+      components[provider].entries[index].pred = std::max(components[provider].entries[index].pred - 1, -1 * (1 << (PRED_BITS - 1)));
+    }
+
+    if (components[provider].entries[index].u == 0 && (components[provider].entries[index].pred == 0 || components[provider].entries[index].pred == -1))
+    {
+      if (altpred == -1)
+      {
+        if (taken)
+        {
+          base_pred[ip % BASE_PRED_SIZE] = std::min(base_pred[ip % BASE_PRED_SIZE] + 1, 1);
+        }
+        else
+        {
+          base_pred[ip % BASE_PRED_SIZE] = std::max(base_pred[ip % BASE_PRED_SIZE] - 1, -2);
+        }
+      }
+      else
+      {
+        int altindex = components[altpred].get_index(ip, history);
+        if (taken)
+        {
+          components[altpred].entries[altindex].pred = std::min(components[altpred].entries[altindex].pred + 1, (1 << (PRED_BITS - 1)) - 1);
+        }
+        else
+        {
+          components[altpred].entries[altindex].pred = std::max(components[altpred].entries[altindex].pred - 1, -1 * (1 << (PRED_BITS - 1)));
+        }
+      }
+      // std::cerr << "Exit using alt Prediction" << std::endl;
+    }
+
+    // New entry on misprediction
+    if (prediction != taken)
+    {
+      int start;
+      int random = std::rand() % 4;
+      if (random <= 1)
+      {
+        start = provider + 1;
+      }
+      else if (random == 2)
+      {
+        start = provider + 2;
+      }
+      else
+      {
+        start = provider + 3;
+      }
+
+      for (int i = start; i < NUM_COMPONENTS; i++)
+      {
+        int index = components[i].get_index(ip, history);
+        if (components[i].entries[index].u == 0)
+        {
+          components[i].entries[index].tag = components[i].get_tag(ip, history);
+          components[i].entries[index].pred = 0;
+          break;
+        }
+      }
+    }
+  }
+
+  // Update Global History
+  // std::rotate(global_hist[ip % GLOBAL_HISTORY_SIZE].begin(), global_hist[ip % GLOBAL_HISTORY_SIZE].end() - 1, global_hist[ip % GLOBAL_HISTORY_SIZE].end());
+
+  for (int i = hist_lens[NUM_COMPONENTS - 1] - 2; i >= 0; i--)
+  {
+    global_hist[i + 1] = global_hist[i];
+  }
+  if (taken)
+    global_hist[0] = 1;
+  else
+    global_hist[0] = 0;
+
+  // Reset Useful bit
+  // TODO
+
+  if(branches % PERIODIC_UPDATE == 0){
+    if(phase){
+      for(int i = 0; i < NUM_COMPONENTS; i++){
+        for(int j = 0; j < num_entries[i]; j++){
+          components[i].entries[j].u = components[i].entries[j].u % 2;
+        }
+      }
+    }
+    else{
+      for(int i = 0; i < NUM_COMPONENTS; i++){
+        for(int j = 0; j < num_entries[i]; j++){
+          components[i].entries[j].u = components[i].entries[j].u / 2;
+        }
+      }
+    }
+    phase = 1 - phase;
+    branches = 0;
+  }
+
+
+  loop_pred.update(taken, tage_pred);
+  if(loop_pred.found && tage_pred != lp_prediction){
+    if (taken == lp_prediction){
+        if (WITHLOOP < 127) WITHLOOP++;
+    }  
+    else{
+        if(WITHLOOP > -128) WITHLOOP--;
+    }
+  }
+
+  // std::cerr << "Exit provider" << std::endl;
+}
