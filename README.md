@@ -1,3 +1,5 @@
+**Note:** The files and results are present in the new_champsim
+
 <p align="center">
   <h1 align="center"> ChampSim </h1>
   <p> ChampSim is a trace-based simulator for a microarchitecture study. You can sign up to the public mailing list by sending an empty mail to champsim+subscribe@googlegroups.com. If you have questions about how to use ChampSim, you can often receive a quicker response on the mailing list. Please reserve GitHub Issues for bugs. <p>
@@ -70,3 +72,5 @@ ChampSim measures the IPC (Instruction Per Cycle) value as a performance metric.
 There are some other useful metrics printed out at the end of simulation. <br>
 
 Good luck and be a champion! <br>
+
+ branc
