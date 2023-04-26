@@ -3,8 +3,13 @@
 #include <fstream>
 
 #include "ooo_cpu.h"
+#include "loop_predictor.h"
+int WITHLOOP = 0;
+LoopPredictor loop_pred;
+uint8_t tage_pred;
+uint8_t lp_prediction;
 
-const int PRED_BITS = 2;
+const int PRED_BITS = 3;
 const int USEFUL_BITS = 2;
 const int NUM_COMPONENTS = 12;
 const int BASE_PRED_SIZE = 4096 * 4;
@@ -126,12 +131,13 @@ void O3_CPU::initialize_branch_predictor()
     base_pred[i] = 0;
   }
 
+  loop_pred = LoopPredictor();
+
+
   // std::cout << "Ended" << std::endl;
 }
 
-uint8_t O3_CPU::predict_branch(uint64_t ip)
-{
-  // std::cerr << "Predict Started for IP " << ip << std::endl;
+uint8_t tage_predictor(uint64_t ip){
   auto history = global_hist;
   int altpred = -1;
   int provider = -1;
@@ -154,13 +160,12 @@ uint8_t O3_CPU::predict_branch(uint64_t ip)
     }
   }
 
-  // std::cerr << "Found Provider " << provider << std::endl;
+  // std::cerr << "Found Provider" << std::endl;
 
   if (provider == -1)
   {
     prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
     // std::cerr << "Exit using base Prediction" << std::endl;
-    // std::cout << prediction << std::endl;
     return (uint8_t)prediction;
   }
 
@@ -171,19 +176,29 @@ uint8_t O3_CPU::predict_branch(uint64_t ip)
     {
       prediction = (base_pred[ip % BASE_PRED_SIZE] >= 0);
       // std::cerr << "Exit using alt base Prediction" << std::endl;
-      // std::cout << prediction << std::endl;
       return (uint8_t)prediction;
     }
     prediction = components[altpred].predict(ip, history);
     // std::cerr << "Exit using alt Prediction" << std::endl;
-    // std::cout << prediction << std::endl;
     return (uint8_t)prediction;
   }
 
   prediction = components[provider].predict(ip, history);
-  // std::cout << prediction << std::endl;
   // std::cerr << "Exit using provider prediction" << std::endl;
   return (uint8_t)prediction;
+
+
+}
+
+uint8_t O3_CPU::predict_branch(uint64_t ip)
+{
+  lp_prediction = loop_pred.getPred(ip);
+  tage_pred = tage_predictor(ip);
+  if (loop_pred.found && WITHLOOP >= 0){
+    // std::cerr << "Exit using loop Prediction" << std::endl;
+    return (uint8_t)lp_prediction;
+  }
+  return tage_pred;
 }
 
 void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
@@ -394,6 +409,16 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
     branches = 0;
   }
 
+
+  loop_pred.update(taken, tage_pred);
+  if(loop_pred.found && tage_pred != lp_prediction){
+    if (taken == lp_prediction){
+        if (WITHLOOP < 127) WITHLOOP++;
+    }  
+    else{
+        if(WITHLOOP > -128) WITHLOOP--;
+    }
+  }
 
   // std::cerr << "Exit provider" << std::endl;
 }
