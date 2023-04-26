@@ -13,8 +13,8 @@ import sys
 columnnames = ('predictor','instructions','tracename',
     'IPC','Branch_Prediction_Accuracy','MPKI','ROB_Occ_at_Mispredict'
     'BRANCH_DIRECT_JUMP','BRANCH_INDIRECT','BRANCH_CONDITIONAL','BRANCH_DIRECT_CALL','BRANCH_INDIRECT_CALL', 'BRANCH_RETURN')
-plotpath = './traces/plots/'
-csv_dir = './traces/csvdata/'
+plotpath = './results/plots/'
+csv_dir = './results/csvdata/'
 
 default_base = 'ltage'
 default_comparators = ['hashed_perceptron','ltage'] # change this

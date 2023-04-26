@@ -16,9 +16,9 @@ try:
 except:
     overrwrite = False
 
-csv_output_path = f'./traces/csvdata/{predname}-{instr}M.csv'
+csv_output_path = f'./results/csvdata/{predname}-{instr}M.csv'
 traceinppath = './traces/'
-txt_output_path = './traces/txtdata/'
+txt_output_path = './results/txtdata/'
 
 def run_command(command):
     subprocess.run(command, shell=True)

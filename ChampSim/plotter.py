@@ -8,8 +8,8 @@ import sys
 columnnames = ('predictor','instructions','tracename',
     'IPC','Branch_Prediction_Accuracy','MPKI','ROB_Occ_at_Mispredict'
     'BRANCH_DIRECT_JUMP','BRANCH_INDIRECT','BRANCH_CONDITIONAL','BRANCH_DIRECT_CALL','BRANCH_INDIRECT_CALL', 'BRANCH_RETURN')
-plotpath = './traces/plots/'
-csv_dir = './traces/csvdata/'
+plotpath = './results/plots/'
+csv_dir = './results/csvdata/'
 # usage 
 # (python3 datacollector.py or ./datacollector.py) predname1-instr1 predname2-instr2 ... metric
 # or
