@@ -7,14 +7,22 @@ For the scripts traces should be inside ChampSim/traces (alternatively change th
 
 The different versions of branch predictors are in the ChampSim/branch folder. 
 
+### Predictors
+- ltage_base : 
 
-#### Data
-Data used in the report, and otherwise can be found in - <fill this>
+- ltage_nolp :
+
+- ltage_p4 :
+
+- ltage_byuseful : 
+
+### Data
+Data used in the report, and otherwise can be found in the _results_ folder.  <fill this>
 
 
-#### Scripts
+### Scripts
 The scripts here are - 
-- datacollector.py - args <predictor_name> <no_of_instr> <overwrite>(1 to overwrite existing simulation data/ optional) .
+- datacollector.py - args <predictor_name> <no_of_instr> <overwrite> \<overwrite> (1 to redo sims/ optional) .
 
 This will run the simulation if necessary, and then geenrate a csv from the txt outputs. Paths are within traces by default.
 
@@ -25,4 +33,8 @@ This will generate bar/line plots comparing these for the same metric.
 - table.py - args nothing or  \<base_for_comparison> \<predictor1> ... \<predictorn> \<instr> \<metric> 
 
 This will generate a table comparing the ratio difference in the metric across predictors for each trace ,and also save its csv,
+
+- rename.py - no args
+
+Just a utility to rename results
 
