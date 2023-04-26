@@ -33,7 +33,7 @@ class LoopPredictor{
 			ind = (ip & ((1 << BITS_IND)-1)) << BITS_WAY;
 			tag  = (ip>>BITS_IND & ((1<<TAG_LEN)-1));
 			for(int i = 0; i < WAY; i++){
-				if (entries[i+ind].tag == tag){
+				if (entries[i+ind].tag == tag && entries[i+ind].confidence >= 3){
 					/* hit = i; */
 					found = true;
 					lastEntry = &entries[i+ind];
