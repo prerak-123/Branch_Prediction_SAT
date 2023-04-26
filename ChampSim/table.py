@@ -43,7 +43,7 @@ def table_maker(base:str,comparators:list[str],size:int,metric:str):
     # Create a colormap for coloring the cells
     cmap = plt.cm.Blues
     table = pd.DataFrame(data)
-
+    table.to_csv(f'{csv_dir}{"_".join(comparators)}_vs_{base}_{size}M_{metric}_table.csv')
     # Create a table with colored cells
     fig, ax = plt.subplots(figsize=(6, 4))  # Set the figure size as per your requirement
     ax.axis('off')  # Turn off the axis
@@ -53,7 +53,6 @@ def table_maker(base:str,comparators:list[str],size:int,metric:str):
     plt.savefig(f'{plotpath}{"_".join(comparators)}_vs_{base}_{size}M_{metric}_table.png', bbox_inches='tight',dpi=300)
     plt.close()
     
-    table.to_csv(f'{csv_dir}{"_".join(comparators)}_vs_{base}_{size}M_{metric}_table.csv')
     return
 
 def main():
